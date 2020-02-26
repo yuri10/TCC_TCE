@@ -7,5 +7,6 @@ IDE: Spyder(Anaconda)
 Bibliotecas:
 	Pandas (leitura dos dados e manipulacao de dataframes)
 	Gensim (algoritmos de machine learning NLP)
-	nltk e unidecode (pre processamento dos dados)
+	nltk e unidecode (pre processamento dos dados) 
+
 

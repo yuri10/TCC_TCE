@@ -11,7 +11,7 @@ import re #re.sub() - Data Cleaner
 import unidecode #remover acentos
 
 '''
-        Tratamento dos dados
+        Tratamento dos dados:
             *Converte todas as palavras para letra minuscula
             *Remove acentos
             *Remove caracteres especiais e numeros
@@ -45,6 +45,11 @@ df_licitacoes2019['objeto'] = df_licitacoes2019.objeto.apply(lambda x: ' '.join(
 df['tokenized_sents'] = df.apply(lambda row: nltk.word_tokenize(row['Especificação']), axis=1)
 df_licitacoes2019['tokenized_sents'] = df_licitacoes2019.apply(lambda row: nltk.word_tokenize(row['objeto']), axis=1)
 
+#stemming the text (se quiser usar o stemming, só descomentar as 3 linhas abaixo)
+#stemmer = nltk.stem.RSLPStemmer()
+#df['tokenized_sents'] = df["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
+#df_licitacoes2019['tokenized_sents'] = df_licitacoes2019["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
+
 #transforma numma lista de lista para alimentar o LDA
 lista = list(df.tokenized_sents.values)
 lista_licitacoes = list(df_licitacoes2019.tokenized_sents.values)
@@ -65,15 +70,15 @@ from gensim import similarities
 dct = corpora.Dictionary(lista)
 corpus = [dct.doc2bow(line) for line in lista]
 
-#Modelo LSI (100 topicos)
-lsi = models.LsiModel(corpus, id2word=dct, num_topics=100)
+#Modelo LSI (20 topicos)
+lsi = models.LsiModel(corpus, id2word=dct, num_topics=250)
 
 #cria a matriz de similaridade dos grupos
 index = similarities.MatrixSimilarity(lsi[corpus])
 
 #descricao da licitacao que sera comparada com os grupos
 #transforma a descricao no espaco vetorial do LSI
-licitacao_entrada = "gas ENGARRAFADO DIVERSOS USOS"
+licitacao_entrada = "aquisicao generos alimenticios diretamente agricultura familiar empreendedor familiar rural organizacoes destinado programa nacional alimentacao escolar pnae"
 vec_bow = dct.doc2bow(licitacao_entrada.lower().split())
 vec_lsi = lsi[vec_bow]  # convert the query to LSI space
 
@@ -89,15 +94,30 @@ for i, s in enumerate(sims[0:5]):
 '''
 
 '''
-     rotula cada licitacao com o grupo de maior "similaridade"
+     Rotula as Licitacoes
 '''
+#cria a coluna "classificacao" no dataframe
+df_licitacoes2019['classificacao'] = ""
+
 def maiorSimilaridade(licitacao_entrada):
-    vec_bow = dct.doc2bow(doc_entrada.lower().split())
+    vec_bow = dct.doc2bow(licitacao_entrada)
     vec_lsi = lsi[vec_bow]  # convert the query to LSI space
     #Armazena a similaridade da entrada com cada um dos grupos
     sims = index[vec_lsi]
-    return sims[0]
+    #ordena as similaridades em ordem decrescente
+    sims = sorted(enumerate(sims), key=lambda item: -item[1])
+    #retorna o grupo que possui a maior similaridade
+    return df.Descrição[sims[0][0]]
 
+#Classificando todas as licitacoes
+df_licitacoes2019['classificacao'] = df_licitacoes2019.apply(lambda row: maiorSimilaridade(row['tokenized_sents']), axis=1)
+
+
+df_testando = df_licitacoes2019[df_licitacoes2019['classificacao'].str.contains('GÊNEROS ALIMENTÍCIOS')]
+
+'''
+    Fim do Rotula as Licitacoes
+'''
 #pesquisar uma string no dataframe
 #df[df['de_Obs'].str.contains('oi celular')]
 '''
@@ -142,15 +162,15 @@ df['species_pos'] = pos
 
 
 
-
 '''
+
 #Lemmatization
 from nltk.stem import WordNetLemmatizer 
 lemmatizer = WordNetLemmatizer() 
 
 
 #Tokenizing the text
-df['tokenized_sents'] = df.apply(lambda row: nltk.word_tokenize(row['df_without_stopwords']), axis=1)
+df_licitacoes2019['tokenized_sents'] = df.apply(lambda row: nltk.word_tokenize(row['df_without_stopwords']), axis=1)
 
 
 
@@ -158,7 +178,7 @@ df['tokenized_sents'] = df.apply(lambda row: nltk.word_tokenize(row['df_without_
 
 #stemming the text (demora pra carai)
 stemmer = nltk.stem.RSLPStemmer()
-df['stemmed'] = df["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
+df_licitacoes2019['stemmed'] = df_licitacoes2019["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
 
 
 
