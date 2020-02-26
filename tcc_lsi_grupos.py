@@ -46,9 +46,9 @@ df['tokenized_sents'] = df.apply(lambda row: nltk.word_tokenize(row['Especifica�
 df_licitacoes2019['tokenized_sents'] = df_licitacoes2019.apply(lambda row: nltk.word_tokenize(row['objeto']), axis=1)
 
 #stemming the text (se quiser usar o stemming, só descomentar as 3 linhas abaixo)
-#stemmer = nltk.stem.RSLPStemmer()
-#df['tokenized_sents'] = df["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
-#df_licitacoes2019['tokenized_sents'] = df_licitacoes2019["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
+stemmer = nltk.stem.RSLPStemmer()
+df['tokenized_sents'] = df["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
+df_licitacoes2019['tokenized_sents'] = df_licitacoes2019["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
 
 #transforma numma lista de lista para alimentar o LDA
 lista = list(df.tokenized_sents.values)
@@ -76,6 +76,9 @@ lsi = models.LsiModel(corpus, id2word=dct, num_topics=250)
 #cria a matriz de similaridade dos grupos
 index = similarities.MatrixSimilarity(lsi[corpus])
 
+'''
+    #Testes com uma unica licitacao e mostra os 5 grupos mais similares
+    #basta apenas descomentar as linhas abaixo e modificar a variavel licitacao_entrada
 #descricao da licitacao que sera comparada com os grupos
 #transforma a descricao no espaco vetorial do LSI
 licitacao_entrada = "aquisicao generos alimenticios diretamente agricultura familiar empreendedor familiar rural organizacoes destinado programa nacional alimentacao escolar pnae"
@@ -89,6 +92,8 @@ sims = index[vec_lsi]
 sims = sorted(enumerate(sims), key=lambda item: -item[1])
 for i, s in enumerate(sims[0:5]):
     print(s, df.Descrição[s[0]])
+
+'''
 '''
     Fim do LSI
 '''
@@ -97,9 +102,8 @@ for i, s in enumerate(sims[0:5]):
      Rotula as Licitacoes
 '''
 #cria a coluna "classificacao" no dataframe
-df_licitacoes2019['classificacao'] = ""
-
 def maiorSimilaridade(licitacao_entrada):
+    #transforma a descricao no espaco vetorial do LSI
     vec_bow = dct.doc2bow(licitacao_entrada)
     vec_lsi = lsi[vec_bow]  # convert the query to LSI space
     #Armazena a similaridade da entrada com cada um dos grupos
