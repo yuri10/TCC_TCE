@@ -10,59 +10,97 @@ import nltk #tokenizer
 import re #re.sub() - Data Cleaner
 import unidecode #remover acentos
 
-
+'''
+        Tratamento dos dados
+            *Converte todas as palavras para letra minuscula
+            *Remove acentos
+            *Remove caracteres especiais e numeros
+            *Remove StopWords
+            *Tokenizing
+            *Lista 
+            
+'''
 #Lê os dados do arquivo CSV
-df = pd.read_excel("C:/Users/Yuri Oliveira/Desktop/TCC/tabela_codigo_do_objeto.xls", sep = ';')
-df2 = pd.read_csv("C:/Users/Yuri Oliveira/Desktop/TCC/Licitacoes_2019.csv", sep = ';')
+df = pd.read_excel("C:/Users/Yuri Oliveira/Desktop/TCC_TCE/tabela_codigo_do_objeto.xls", sep = ';')
+df_licitacoes2019 = pd.read_csv("C:/Users/Yuri Oliveira/Desktop/TCC_TCE/Licitacoes_2019.csv", encoding = "ISO-8859-1", sep = ';', usecols = ["objeto"])
 
 #Converte todas as palavras para letra minuscula
 df.Especificação = df.Especificação.str.lower()
+df_licitacoes2019.objeto = df_licitacoes2019.objeto.str.lower()
 
 #Remove acentos
 df['Especificação'] = df.Especificação.apply(lambda x: unidecode.unidecode(x))
+df_licitacoes2019['objeto'] = df_licitacoes2019.objeto.apply(lambda x: unidecode.unidecode(x))
 
 #Remove caracteres especiais e numeros
 df['Especificação'] = df.Especificação.apply(lambda x: re.sub('[^a-zA-Z]+', ' ', x))
+df_licitacoes2019['objeto'] = df_licitacoes2019.objeto.apply(lambda x: re.sub('[^a-zA-Z]+', ' ', x))
 
-#Removing StopWords from the strings
+#Remove StopWords
 stop = nltk.corpus.stopwords.words('portuguese')
 df['Especificação'] = df.Especificação.apply(lambda x: ' '.join([word for word in x.split() if word not in (stop)]))
+df_licitacoes2019['objeto'] = df_licitacoes2019.objeto.apply(lambda x: ' '.join([word for word in x.split() if word not in (stop)]))
 
 #Tokenizing
 df['tokenized_sents'] = df.apply(lambda row: nltk.word_tokenize(row['Especificação']), axis=1)
+df_licitacoes2019['tokenized_sents'] = df_licitacoes2019.apply(lambda row: nltk.word_tokenize(row['objeto']), axis=1)
 
 #transforma numma lista de lista para alimentar o LDA
-teste = list(df.tokenized_sents.values)
+lista = list(df.tokenized_sents.values)
+lista_licitacoes = list(df_licitacoes2019.tokenized_sents.values)
 
+'''
+    Fim do Tratamento dos dados
+'''
+
+'''
+    LSI 
+'''
 from gensim import corpora
-dct = corpora.Dictionary(teste)
-corpus = [dct.doc2bow(line) for line in teste]
-
-#https://www.machinelearningplus.com/nlp/gensim-tutorial/#11howtocreatetopicmodelswithlda
 from gensim import models
 from gensim import similarities
+
+#https://www.machinelearningplus.com/nlp/gensim-tutorial/#11howtocreatetopicmodelswithlda
+
+dct = corpora.Dictionary(lista)
+corpus = [dct.doc2bow(line) for line in lista]
+
+#Modelo LSI (100 topicos)
 lsi = models.LsiModel(corpus, id2word=dct, num_topics=100)
 
-
+#cria a matriz de similaridade dos grupos
 index = similarities.MatrixSimilarity(lsi[corpus])
 
-
-doc = "gas ENGARRAFADO DIVERSOS USOS"
-vec_bow = dct.doc2bow(doc.lower().split())
+#descricao da licitacao que sera comparada com os grupos
+#transforma a descricao no espaco vetorial do LSI
+licitacao_entrada = "gas ENGARRAFADO DIVERSOS USOS"
+vec_bow = dct.doc2bow(licitacao_entrada.lower().split())
 vec_lsi = lsi[vec_bow]  # convert the query to LSI space
-#print(vec_lsi)
 
+#Armazena a similaridade da entrada com cada um dos grupos
 sims = index[vec_lsi]
-#print(list(enumerate(sims)))
 
+#Mostra os 5 grupos mais similares com a licitacao de entrada
 sims = sorted(enumerate(sims), key=lambda item: -item[1])
-for i, s in enumerate(sims):
-    print(s, df.Descrição[i])
+for i, s in enumerate(sims[0:5]):
+    print(s, df.Descrição[s[0]])
+'''
+    Fim do LSI
+'''
 
+'''
+     rotula cada licitacao com o grupo de maior "similaridade"
+'''
+def maiorSimilaridade(licitacao_entrada):
+    vec_bow = dct.doc2bow(doc_entrada.lower().split())
+    vec_lsi = lsi[vec_bow]  # convert the query to LSI space
+    #Armazena a similaridade da entrada com cada um dos grupos
+    sims = index[vec_lsi]
+    return sims[0]
 
 #pesquisar uma string no dataframe
 #df[df['de_Obs'].str.contains('oi celular')]
-
+'''
 #Conta a frequencia de todas as palavras do dataframe
 df["freq"] = df.tokenized_sents.apply(lambda x: ' '.join(x))
 freq = df.freq.str.split(expand=True).stack().value_counts()
@@ -73,7 +111,7 @@ df["freq"] = df.tokenized_sents.apply(lambda x: ' '.join(x))
 freq_contratacao = df_contratacao.freq.str.split(expand=True).stack().value_counts()
 
 df_locServ = df_contratacao[df_contratacao['de_Obs'].str.contains('locacao')]
-
+'''
 
 '''
 df['de_Obs'] = df['de_Obs'].apply(lambda x: nlp(x))
