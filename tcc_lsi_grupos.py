@@ -17,7 +17,8 @@ import unidecode #remover acentos
             *Remove caracteres especiais e numeros
             *Remove StopWords
             *Tokenizing
-            *Lista 
+            *Stemming
+            *Lista que alimenta LSI
             
 '''
 #Lê os dados do arquivo CSV
@@ -50,7 +51,7 @@ stemmer = nltk.stem.RSLPStemmer()
 df['tokenized_sents'] = df["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
 df_licitacoes2019['tokenized_sents'] = df_licitacoes2019["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
 
-#transforma numma lista de lista para alimentar o LDA
+#transforma numma lista de lista para alimentar o LSI
 lista = list(df.tokenized_sents.values)
 lista_licitacoes = list(df_licitacoes2019.tokenized_sents.values)
 
@@ -77,7 +78,7 @@ lsi = models.LsiModel(corpus, id2word=dct, num_topics=250)
 index = similarities.MatrixSimilarity(lsi[corpus])
 
 '''
-    #Testes com uma unica licitacao e mostra os 5 grupos mais similares
+    #Teste com uma unica licitacao e mostra os 5 grupos mais similares
     #basta apenas descomentar as linhas abaixo e modificar a variavel licitacao_entrada
 #descricao da licitacao que sera comparada com os grupos
 #transforma a descricao no espaco vetorial do LSI
@@ -116,8 +117,8 @@ def maiorSimilaridade(licitacao_entrada):
 #Classificando todas as licitacoes
 df_licitacoes2019['classificacao'] = df_licitacoes2019.apply(lambda row: maiorSimilaridade(row['tokenized_sents']), axis=1)
 
-
-df_testando = df_licitacoes2019[df_licitacoes2019['classificacao'].str.contains('GÊNEROS ALIMENTÍCIOS')]
+#mostra todas as classificacoes do tipo "Generos Alimenticios"
+#df_testando = df_licitacoes2019[df_licitacoes2019['classificacao'].str.contains('GÊNEROS ALIMENTÍCIOS')]
 
 '''
     Fim do Rotula as Licitacoes
