@@ -18,6 +18,7 @@ import unidecode #remover acentos
             *Remove StopWords
             *Tokenizing
             *Stemming
+            *Remove palavras de tamanho < 3
             *Lista que alimenta LSI
             
 '''
@@ -47,9 +48,18 @@ df['tokenized_sents'] = df.apply(lambda row: nltk.word_tokenize(row['Especifica�
 df_licitacoes2019['tokenized_sents'] = df_licitacoes2019.apply(lambda row: nltk.word_tokenize(row['objeto']), axis=1)
 
 #stemming the text (se quiser usar o stemming, só descomentar as 3 linhas abaixo)
-stemmer = nltk.stem.RSLPStemmer()
-df['tokenized_sents'] = df["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
-df_licitacoes2019['tokenized_sents'] = df_licitacoes2019["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
+#stemmer = nltk.stem.RSLPStemmer()
+#df['tokenized_sents'] = df["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
+#df_licitacoes2019['tokenized_sents'] = df_licitacoes2019["tokenized_sents"].apply(lambda x: [stemmer.stem(y) for y in x])
+
+#Removendo "palavras" menores que 3
+df_licitacoes2019['tokenized_sents'] = df_licitacoes2019.tokenized_sents.apply(lambda x:[x.remove(palavra) if len(palavra) < 3 else palavra for palavra in x])
+df['tokenized_sents'] = df.tokenized_sents.apply(lambda x:[x.remove(palavra) if len(palavra) < 3 else palavra for palavra in x])
+
+#removing Nones
+df_licitacoes2019['tokenized_sents'] = df_licitacoes2019.tokenized_sents.apply(lambda x: list(filter(None, x)))
+df['tokenized_sents'] = df.tokenized_sents.apply(lambda x: list(filter(None, x)))
+
 
 #transforma numma lista de lista para alimentar o LSI
 lista = list(df.tokenized_sents.values)
@@ -72,32 +82,29 @@ dct = corpora.Dictionary(lista)
 corpus = [dct.doc2bow(line) for line in lista]
 
 #Modelo LSI (20 topicos)
-lsi = models.LsiModel(corpus, id2word=dct, num_topics=250)
+lsi = models.LsiModel(corpus, id2word=dct, num_topics=100)
 
 #cria a matriz de similaridade dos grupos
 index = similarities.MatrixSimilarity(lsi[corpus])
 
 '''
-    #Teste com uma unica licitacao e mostra os 5 grupos mais similares
-    #basta apenas descomentar as linhas abaixo e modificar a variavel licitacao_entrada
-#descricao da licitacao que sera comparada com os grupos
-#transforma a descricao no espaco vetorial do LSI
-licitacao_entrada = "aquisicao generos alimenticios diretamente agricultura familiar empreendedor familiar rural organizacoes destinado programa nacional alimentacao escolar pnae"
-vec_bow = dct.doc2bow(licitacao_entrada.lower().split())
-vec_lsi = lsi[vec_bow]  # convert the query to LSI space
-
-#Armazena a similaridade da entrada com cada um dos grupos
-sims = index[vec_lsi]
-
-#Mostra os 5 grupos mais similares com a licitacao de entrada
-sims = sorted(enumerate(sims), key=lambda item: -item[1])
-for i, s in enumerate(sims[0:5]):
-    print(s, df.Descrição[s[0]])
-
-'''
-'''
     Fim do LSI
 '''
+
+#Funcao pra testar com uma unica licitacao(index do dataframe) e mostra os 5 grupos mais similares
+def maisSimilares(index_licitacao):
+    #transforma a descricao da licitacao no espaco vetorial do LSI
+    vec_bow = dct.doc2bow(df_licitacoes2019.tokenized_sents[index_licitacao])
+    vec_lsi = lsi[vec_bow]  # convert the query to LSI space
+    
+    #Armazena a similaridade da entrada com cada um dos grupos
+    sims = index[vec_lsi]
+    
+    #Mostra os 5 grupos mais similares com a licitacao de entrada
+    sims = sorted(enumerate(sims), key=lambda item: -item[1])
+    for i, s in enumerate(sims[0:5]):
+        print(s, df.Descrição[s[0]])
+
 
 '''
      Rotula as Licitacoes
@@ -117,8 +124,22 @@ def maiorSimilaridade(licitacao_entrada):
 #Classificando todas as licitacoes
 df_licitacoes2019['classificacao'] = df_licitacoes2019.apply(lambda row: maiorSimilaridade(row['tokenized_sents']), axis=1)
 
-#mostra todas as classificacoes do tipo "Generos Alimenticios"
-#df_testando = df_licitacoes2019[df_licitacoes2019['classificacao'].str.contains('GÊNEROS ALIMENTÍCIOS')]
+'''
+    Fim de Rotula as Licitacoes
+'''
+
+'''
+    Testando Licitacoes
+'''
+#mostra todas as classificacoes do tipo "SERVIÇO"
+df_testando = df_licitacoes2019[df_licitacoes2019['classificacao'].str.contains('SERVIÇO')]
+
+#pesquisa quais sao os 5 grupos mais relevantes de uma determinada licitacao(pegar indice do dataframe)
+maisSimilares(12)
+
+'''
+    Fim de Testando Licitacoes
+'''
 
 '''
     Fim do Rotula as Licitacoes
