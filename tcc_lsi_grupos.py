@@ -26,6 +26,9 @@ import unidecode #remover acentos
 df = pd.read_excel("C:/Users/Yuri Oliveira/Desktop/TCC_TCE/tabela_codigo_do_objeto.xls", sep = ';')
 df_licitacoes2019 = pd.read_csv("C:/Users/Yuri Oliveira/Desktop/TCC_TCE/Licitacoes_2019.csv", encoding = "ISO-8859-1", sep = ';', usecols = ["objeto"])
 
+#Coloca a descrição do grupo na especificação também
+df['Especificação'] = df.Especificação + " " + df.Descrição
+
 #Converte todas as palavras para letra minuscula
 df.Especificação = df.Especificação.str.lower()
 df_licitacoes2019.objeto = df_licitacoes2019.objeto.str.lower()
@@ -40,6 +43,18 @@ df_licitacoes2019['objeto'] = df_licitacoes2019.objeto.apply(lambda x: re.sub('[
 
 #Remove StopWords
 stop = nltk.corpus.stopwords.words('portuguese')
+newStopWords = ['adesao','aquisicao','servico','servicos','afins',
+                'destinada','geral','via','etc','utilizados',
+                'outros','uso','nao','caso','tais','qualquer',
+                'neste','compreende','publicos','ate','todos',
+                'ser','destinacao','prestados','diversos','usos',
+                'abastecimento','zona','rural','pregao','presencial',
+                'contratacao','municipio','municipal','empresa',
+                'atender','necessidades','destinados','registro',
+                'especializada','conforme','fornecimento','prestacao',
+                'secretarias','sao','municipio','destinado','joao',
+                'execucao','forma','grande','tipo','demanda','jose','ata']
+stop.extend(newStopWords)
 df['Especificação'] = df.Especificação.apply(lambda x: ' '.join([word for word in x.split() if word not in (stop)]))
 df_licitacoes2019['objeto'] = df_licitacoes2019.objeto.apply(lambda x: ' '.join([word for word in x.split() if word not in (stop)]))
 
@@ -135,7 +150,12 @@ df_licitacoes2019['classificacao'] = df_licitacoes2019.apply(lambda row: maiorSi
 df_testando = df_licitacoes2019[df_licitacoes2019['classificacao'].str.contains('SERVIÇO')]
 
 #pesquisa quais sao os 5 grupos mais relevantes de uma determinada licitacao(pegar indice do dataframe)
-maisSimilares(12)
+maisSimilares(99)
+
+#Conta a frequencia de todas as palavras do dataframe
+df_licitacoes2019["freq"] = df_licitacoes2019.tokenized_sents.apply(lambda x: ' '.join(x))
+freq = df_licitacoes2019.freq.str.split(expand=True).stack().value_counts()
+
 
 '''
     Fim de Testando Licitacoes
